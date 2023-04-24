@@ -1,0 +1,76 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mutateme
+  labels:
+    app: mutateme
+spec:
+  publishNotReadyAddresses: true
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    app: mutateme
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mutateme
+  labels:
+    app: mutateme
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mutateme
+  template:
+    metadata:
+      name: mutateme
+      labels:
+        app: mutateme
+    spec:
+      containers:
+        - name: mutator
+          image: pankydcoder/cc-config-injector:latest
+          ports:
+            - containerPort: 8443
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 250m
+              memory: 64Mi
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mutateme
+  labels:
+    app: mutateme
+webhooks:
+  - name: mutateme.default.svc.cluster.local
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURlVENDQW1HZ0F3SUJBZ0lVQUt6WWxWZVNYeDZQUlpvUmFyL3F1QmRCM3Znd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0ZURVRNQkVHQTFVRUF4TUthM1ZpWlhKdVpYUmxjekFlRncweU16QTBNakV4TXpRNE1EQmFGdzB5TkRBMApNakF4TXpRNE1EQmFNQjh4SFRBYkJnTlZCQU1URkcxMWRHRjBaVzFsTG1SbFptRjFiSFF1YzNaak1JSUJJakFOCkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQXh4QVBDWXRzeXVqeE5rZ3dJVUxGQm53VDROUnIKeGxpNGw5ZEtHSkExM1VCVlcxejZpaldDU3NNRzg1WmZPQWZWSnE0d1Y0cFJBT1c5ZTVjclpmMXh4ckF1RFh2cgpPb3daellCcW9EbllIeHhMQmpxZFRYUnE1TWNOb294YVQvOFJFRHlXbXRoSzZNUnp0c3RiNXVFZHNJV282VDRiCjBTOStnUTV2cUlxNDV2VUxZc1hJdHNiaTZYNk9KZm5JK1NnR3JuSkZQK01Bd09ESW54ay90M29haFZhaEdtSzUKWDl5SHFNV0N0UGFBUVFkc3R2TzVBQjdiL3JjdVNmN0FOZU9zRS8xeTZaUXdTUzlZQmZFa1EwcVJxZWVRUXB3UwpPMXVtNmNWVU9zVVlRYVZFS2I1VEhiWVZscldIcDFaQlZEU2dPVWFOd1JoMFkzWGVpemFTMUg4V0d3SURBUUFCCm80RzJNSUd6TUE0R0ExVWREd0VCL3dRRUF3SUZvREFUQmdOVkhTVUVEREFLQmdnckJnRUZCUWNEQVRBTUJnTlYKSFJNQkFmOEVBakFBTUIwR0ExVWREZ1FXQkJUalJ6M09RZDZIV3ZpeWlJZ1R1VW1KS0daSGhUQmZCZ05WSFJFRQpXREJXZ2dodGRYUmhkR1Z0WllJUWJYVjBZWFJsYldVdVpHVm1ZWFZzZElJVWJYVjBZWFJsYldVdVpHVm1ZWFZzCmRDNXpkbU9DSW0xMWRHRjBaVzFsTG1SbFptRjFiSFF1YzNaakxtTnNkWE4wWlhJdWJHOWpZV3d3RFFZSktvWkkKaHZjTkFRRUxCUUFEZ2dFQkFKQWVsK2dYRndkTGxEbGwyeVoyWmIyZUZ2WUE0MzRiSUdMUVhhOEJwcjlHaEt2UgovK3JvbktOeEhwTXBtOUVaRjdObFFsZW83TTl5TmpIOWJNZ3NkdHFWYW9TdGdyT2J1Yzk3aGp3alp5L2o5SjVkCjhOK3N6SVBLMFNzeHJSK1dCb0d5SzB5eXJoMWFmSFMySkw3SEpaRTNUZUx5TGVwSG5xbXl5RWZxelphQTkvWjYKVjRuZ3VZTTUwMmU3K1EyVUk1dVdsbUp1VUtieWhvbVBLOTJXU25YYkRNWFA0R0craWNhMC9VSVR3WFBDOWpocgpFWmFlV0dUbEVUeFZBMlZsTEd2Q3dyaDdVVTNyZjkwY2JEOE9uVjd6YmgwRU92VUM4YllKNVRBeGl6NnB2OWxLCnl2NHF3bjErTkFabHhPb3J2RXJzSzJacDRsTGluL0YyL1cyREpuST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+      service:
+        name: mutateme
+        namespace: default
+        path: "/mutate"
+        port: 443
+    admissionReviewVersions: ["v1"]
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    sideEffects: None
+    timeoutSeconds: 5
+    reinvocationPolicy: Never
+    failurePolicy: Ignore
+    namespaceSelector:
+      matchLabels:
+        mutateme: enabled

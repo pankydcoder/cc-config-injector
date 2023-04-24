@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mutateme
+  labels:
+    app: mutateme
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mutateme
+  template:
+    metadata:
+      name: mutateme
+      labels:
+        app: mutateme
+    spec:
+      containers:
+        - name: mutator
+          image: pankydcoder/cc-config-injector:latest
+          imagePullPolicy: Never
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 250m
+              memory: 64Mi
